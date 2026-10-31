@@ -1,0 +1,11 @@
+[package]
+name = "horizon-mod-better-pvp"
+version = "1.0.0"
+edition = "2024"
+license = "MIT"
+publish = false
+description = "Better PVP for Horizon: a native mod with potion status, armor status, notifications, XP drops, entity info, toggle sneak, better sprint and quick use."
+
+# The pure logic and its tests; the same file the bundle adds to the game.
+[lib]
+path = "mixins/better_pvp/runtime.rs"
