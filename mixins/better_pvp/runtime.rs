@@ -7,7 +7,7 @@
 
 pub const ID: &str = "better_pvp";
 pub const NAME: &str = "Better PVP";
-pub const VERSION: &str = "1.0.0";
+pub const VERSION: &str = "1.0.1";
 pub const DESCRIPTION: &str = "PVP and survival HUD: potion status, armor status, notifications, XP drops, entity info, toggle sneak, better sprint and quick use. Inspired by Xaero's Better PVP.";
 
 /// The corners, as the settings files name them and the page labels them.
@@ -39,6 +39,10 @@ pub const KEYS: [(&str, &str, &str); 12] = [
     ("quick_use_8", "Quick Use 8", "key.keyboard.keypad.8"),
     ("quick_use_9", "Quick Use 9", "key.keyboard.keypad.9"),
 ];
+
+/// How many of `KEYS` the settings page lists; the Quick Use slots stay on
+/// the keypad (rebind them in horizon-mods.txt as `key.better_pvp.quick_use_N`).
+pub const PAGE_KEYS: usize = 3;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Settings {
@@ -89,6 +93,17 @@ fn index(get: &impl Fn(&str) -> Option<String>, key: &str, names: &[(&str, &str)
         .and_then(|c| names.iter().position(|k| k.0 == c.trim()))
         .unwrap_or(default)
 }
+/// Off -> top left -> top right -> bottom left -> bottom right -> off.
+fn cycle(on: &mut bool, corner: &mut usize) {
+    if !*on {
+        *on = true;
+        *corner = 0;
+    } else if *corner + 1 < CORNERS.len() {
+        *corner += 1;
+    } else {
+        *on = false;
+    }
+}
 fn word(b: bool) -> &'static str {
     if b { "ON" } else { "OFF" }
 }
@@ -113,41 +128,35 @@ impl Settings {
             notice_corner: index(&get, "notice_corner", &CORNERS, d.notice_corner),
         }
     }
+    /// The page's buttons, ten of them: each HUD box is one button that
+    /// cycles Off -> the four corners -> Off.
     pub fn labels(&self) -> Vec<String> {
+        let spot = |on: bool, c: usize| if on { CORNERS[c].1 } else { "OFF" };
         vec![
-            format!("Potion Status: {}", word(self.potion_status)),
-            format!("Potion Status Corner: {}", CORNERS[self.potion_corner].1),
-            format!("Armor Status: {}", word(self.armor_status)),
-            format!("Armor Status Corner: {}", CORNERS[self.armor_corner].1),
+            format!("Potion Status: {}", spot(self.potion_status, self.potion_corner)),
+            format!("Armor Status: {}", spot(self.armor_status, self.armor_corner)),
             format!("Durability In: {}", DURABILITY[self.durability].1),
             format!("Display Left Arrows: {}", word(self.left_arrows)),
-            format!("Notifications: {}", word(self.notifications)),
-            format!("Notifications Corner: {}", CORNERS[self.notice_corner].1),
+            format!("Notifications: {}", spot(self.notifications, self.notice_corner)),
             format!("XP Drops: {}", word(self.xp_drops)),
-            format!("Entity Info: {}", word(self.entity_info)),
-            format!("Entity Info Corner: {}", CORNERS[self.info_corner].1),
+            format!("Entity Info: {}", spot(self.entity_info, self.info_corner)),
             format!("Toggle Sneak: {}", word(self.toggle_sneak)),
             format!("Better Sprint: {}", word(self.better_sprint)),
             format!("Quick Item Use: {}", word(self.quick_use)),
         ]
     }
     pub fn click(&mut self, i: usize) {
-        let next = |v: usize, n: usize| (v + 1) % n;
         match i {
-            0 => self.potion_status = !self.potion_status,
-            1 => self.potion_corner = next(self.potion_corner, 4),
-            2 => self.armor_status = !self.armor_status,
-            3 => self.armor_corner = next(self.armor_corner, 4),
-            4 => self.durability = next(self.durability, DURABILITY.len()),
-            5 => self.left_arrows = !self.left_arrows,
-            6 => self.notifications = !self.notifications,
-            7 => self.notice_corner = next(self.notice_corner, 4),
-            8 => self.xp_drops = !self.xp_drops,
-            9 => self.entity_info = !self.entity_info,
-            10 => self.info_corner = next(self.info_corner, 4),
-            11 => self.toggle_sneak = !self.toggle_sneak,
-            12 => self.better_sprint = !self.better_sprint,
-            13 => self.quick_use = !self.quick_use,
+            0 => cycle(&mut self.potion_status, &mut self.potion_corner),
+            1 => cycle(&mut self.armor_status, &mut self.armor_corner),
+            2 => self.durability = (self.durability + 1) % DURABILITY.len(),
+            3 => self.left_arrows = !self.left_arrows,
+            4 => cycle(&mut self.notifications, &mut self.notice_corner),
+            5 => self.xp_drops = !self.xp_drops,
+            6 => cycle(&mut self.entity_info, &mut self.info_corner),
+            7 => self.toggle_sneak = !self.toggle_sneak,
+            8 => self.better_sprint = !self.better_sprint,
+            9 => self.quick_use = !self.quick_use,
             _ => {}
         }
     }
@@ -362,16 +371,31 @@ mod tests {
         let mut s = Settings::read(|_| None);
         assert_eq!(s, Settings::default());
         s.click(0);
-        s.click(4);
+        s.click(2);
         s.click(1);
         let stored = s.stored();
         let again = Settings::read(|k| stored.iter().find(|e| e.0 == k).map(|e| e.1.clone()));
         assert_eq!(s, again);
-        assert!(!again.potion_status);
-        assert_eq!(s.labels().len(), 14);
-        for i in 0..14 {
+        assert_eq!(s.labels().len(), 10);
+        for i in 0..12 {
             s.click(i);
         }
+    }
+
+    #[test]
+    fn a_box_button_cycles_through_the_corners() {
+        let mut s = Settings::default();
+        assert_eq!(s.labels()[0], "Potion Status: Bottom left");
+        s.click(0);
+        assert_eq!(s.labels()[0], "Potion Status: Bottom right");
+        s.click(0);
+        assert_eq!(s.labels()[0], "Potion Status: OFF");
+        s.click(0);
+        assert_eq!(s.labels()[0], "Potion Status: Top left");
+        for _ in 0..3 {
+            s.click(0);
+        }
+        assert_eq!(s.labels()[0], "Potion Status: Bottom right");
     }
 
     #[test]

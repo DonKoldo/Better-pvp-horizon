@@ -262,6 +262,7 @@ fn armor(game: &Game<'_>, batch: &mut HudBatch, corners: &mut Corners, s: &m::Se
             .inventory
             .iter()
             .flatten()
+            .chain(game.offhand.iter())
             .filter(|i| i.item.ends_with("arrow"))
             .map(|i| i.count)
             .sum::<u32>();
@@ -271,10 +272,15 @@ fn armor(game: &Game<'_>, batch: &mut HudBatch, corners: &mut Corners, s: &m::Se
         .iter()
         .map(|st| {
             let max = game.items().get(&st.item).map_or(0, |i| i.max_damage);
-            let text = m::durability_text(s.durability, st.damage, max)
-                .or_else(|| arrows(st).map(|n| format!("{n} arrows")))
-                .or_else(|| (st.count > 1).then(|| format!("x{}", st.count)))
-                .unwrap_or_default();
+            let parts: Vec<String> = [
+                m::durability_text(s.durability, st.damage, max),
+                arrows(st).map(|n| format!("{n} arrows")),
+                (max == 0 && st.count > 1).then(|| format!("x{}", st.count)),
+            ]
+            .into_iter()
+            .flatten()
+            .collect();
+            let text = parts.join("  ");
             let color = if max > 0 { m::durability_color(max.saturating_sub(st.damage), max) } else { WHITE };
             (*st, text, color)
         })
@@ -301,12 +307,19 @@ fn entity_info(game: &Game<'_>, batch: &mut HudBatch, corners: &mut Corners, s: 
     if let Some(a) = armor {
         lines.push((a, GRAY));
     }
-    let w = lines.iter().map(|l| game.native_text_width(&l.0)).fold(0.0, f32::max) + PAD * 2.0;
-    let h = lines.len() as f32 * ROW + PAD;
+    // The mob's spawn egg as its icon, when it has one.
+    let egg = format!("{}_spawn_egg", mob.kind.id);
+    let icon = game.items().get(&egg).is_some();
+    let side = if icon { 16.0 + PAD } else { 0.0 };
+    let w = lines.iter().map(|l| game.native_text_width(&l.0)).fold(0.0, f32::max) + PAD * 2.0 + side;
+    let h = (lines.len() as f32 * ROW + PAD).max(if icon { 16.0 + PAD } else { 0.0 });
     let Some(at) = place(game, corners, s.info_corner, w, h) else { return };
     panel(game, batch, at, w, h);
+    if icon {
+        game.native_item(batch, &egg, [at.0 + PAD, at.1 + (h - 16.0) / 2.0], 16.0);
+    }
     for (n, (text, color)) in lines.iter().enumerate() {
-        game.native_text(batch, text, [at.0 + PAD, at.1 + PAD / 2.0 + n as f32 * ROW + 1.0], *color, true);
+        game.native_text(batch, text, [at.0 + PAD + side, at.1 + PAD / 2.0 + n as f32 * ROW + 1.0], *color, true);
     }
 }
 
