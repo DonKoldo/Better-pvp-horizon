@@ -7,7 +7,7 @@
 
 pub const ID: &str = "better_pvp";
 pub const NAME: &str = "Better PVP";
-pub const VERSION: &str = "1.0.1";
+pub const VERSION: &str = "1.0.2";
 pub const DESCRIPTION: &str = "PVP and survival HUD: potion status, armor status, notifications, XP drops, entity info, toggle sneak, better sprint and quick use. Inspired by Xaero's Better PVP.";
 
 /// The corners, as the settings files name them and the page labels them.

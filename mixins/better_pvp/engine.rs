@@ -298,7 +298,7 @@ fn armor(game: &Game<'_>, batch: &mut HudBatch, corners: &mut Corners, s: &m::Se
 }
 
 fn entity_info(game: &Game<'_>, batch: &mut HudBatch, corners: &mut Corners, s: &m::Settings) {
-    let Some((i, _)) = game.mob_hit() else { return };
+    let Some((i, ..)) = game.mob_hit() else { return };
     let mob = &game.mobs[i];
     let name = m::pretty(&mob.kind.id);
     let hp = format!("Health: {:.1} / {:.1}", mob.health.max(0.0), mob.kind.max_health);

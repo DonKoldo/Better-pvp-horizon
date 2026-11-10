@@ -1,10 +1,10 @@
 [mod]
 id = "better_pvp"
-version = "1.0.1"
+version = "1.0.2"
 priority = 100
 
 [compatibility]
-horizon_revision = "ab920243508723ee3e938fa50a2fa155553dee95"
+horizon_revision = "8933e8c2d81bef1549a63dc1c8341ca46fe3cffa"
 
 [[module]]
 id = "runtime"

@@ -21,6 +21,6 @@ Not implemented: "being shot" notifications, entity model preview, potion icons,
 and the minimap (Horizon has its own).
 
 ## Build
-`cargo test` runs the logic tests. `python3 package.py` writes `better_pvp-1.0.1.hnmod`.
+`cargo test` runs the logic tests. `python3 package.py` writes `better_pvp-1.0.2.hnmod`.
 Install via the launcher's Mods page or `horizon-launcher native-build mixins/better_pvp --trust-native-code`.
-Pinned to Horizon commit `ab92024` (it reads private game fields), game 26.3. Compile-checked on that commit.
+Pinned to Horizon commit `8933e8c` (it reads private game fields), game 26.3. Compile-checked on that commit.
